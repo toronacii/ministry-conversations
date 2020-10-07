@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conversaciones</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+  <style>
+    body {
+      font-size: 0.8em;
+    }
+
+    .wrapper {
+      display: grid;
+      grid-template-columns: repeat(1, 1fr);
+      grid-gap: 10px;
+      grid-auto-rows: 1fr;
+    }
+
+    ol {
+      border-bottom: 1px solid #aaa;
+      margin-bottom: 0;
+      padding: 5px;
+      padding-left: 15px;
+    }
+
+    @media (max-width: 575px) {
+      .wrapper {
+        grid-auto-rows: minmax(100px, auto);
+      }
+    }
+
+    @media (min-width: 576px) {
+      .wrapper {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 768px) {
+      .wrapper {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (min-width: 992px) {
+      .wrapper {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="p-2">
+      <input class="form-control" type="text" v-model="searchQuery" placeholder="Buscar" />
+    </div>
+    <div class="wrapper mt-4">
+      <item :data="item" v-for="item in data"></item>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script>
+    fetch('data.json')
+      .then(response => response.json())
+      .then(initialize);
+
+
+    function initialize(data) {
+      console.log(data);
+
+      data.forEach(e => {
+        const searchable = e.conversations.map(c => Object.values(c)).concat(e.title);
+        const strSearchable = JSON.stringify(searchable);
+        e.searchString = removeSpecialChars(strSearchable);
+      });
+
+      Vue.component('item', {
+        props: ['data'],
+        template: `
+        <div class="px-2">
+          <h6><a :href="data.internalLink" target="_blank">{{ data.title }}</a></h6>
+          <ol>
+            <template v-for="(conversation, index) in data.conversations">
+              <li>
+                <span>{{ conversation.question }}</span> 
+                <strong>{{ conversation.vers }}</strong>   
+              </li>
+              <li v-if="index + 1 === data.conversations.length">
+                <em>{{ conversation.pending }}</em>
+              </li>
+            </template>
+          </ol>
+        </div>
+        `
+      });
+
+      const app = new Vue({
+        el: '#app',
+        data: {
+          searchQuery: null,
+          allData: data
+        },
+        computed: {
+          data() {
+            if (this.searchQuery) {
+              return this.allData.filter(({ searchString }) => {
+                return removeSpecialChars(this.searchQuery).toLowerCase().split(' ').every(v => searchString.toLowerCase().includes(v))
+              })
+            } else {
+              return this.allData;
+            }
+          }
+        }
+      })
+    }
+
+    function removeSpecialChars(str) {
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g,"");
+    }
+
+  </script>
+</body>
+
+</html>
